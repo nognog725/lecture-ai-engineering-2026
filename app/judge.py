@@ -54,8 +54,8 @@ Verdict = Literal["pass", "fail", "unsure"]
 class CriterionVerdict(BaseModel):
     """1 つの基準に対する判定。reason を先に書かせてから verdict を決めさせる（理由→判定の順）。"""
 
-    reason: str = Field(description="判定の理由。日本語で 1〜2 文")
     verdict: Verdict = Field(description="pass / fail / unsure のどれか")
+    reason: str = Field(description="判定の理由。日本語で 1〜2 文")
 
 
 class JudgeResult(BaseModel):
@@ -117,8 +117,9 @@ def judge_prompt(case: dict) -> str:
 def build_judge(model, rubric: str) -> Agent:
     instructions = rubric + (
         "\n\n# 出力の形式\n"
-        "4 つの基準（grounding, scope, hint, clarity）それぞれについて、reason（理由）を先に書き、"
-        "そのあとで verdict を pass / fail / unsure のどれかにしてください。"
+        "4 つの基準（grounding, scope, hint, clarity）それぞれについて、"
+        "まず verdict を pass / fail / unsure のどれかに決め、"
+        "そのあとで reason（理由）を日本語で1〜2文書いてください。"
     )
     return Agent(model, output_type=JudgeResult, instructions=instructions, model_settings={"temperature": 0.0})
 
@@ -145,7 +146,7 @@ def _rule_based_judge(messages: list[ModelMessage], info: AgentInfo) -> ModelRes
     a = prompt.split("# 回答", 1)[-1].split("# 参照", 1)[0]
 
     def v(reason, verdict):
-        return {"reason": reason, "verdict": verdict}
+        return {"verdict": verdict, "reason": reason}
 
     if "用語集に「" in a and ("ありません" in a or "見つかりません" in a) and "一般には" in a:
         # STEP 3 で「根拠」に方針が書き足されていれば、それに従う（…（pass）→ pass、…（fail）→ fail）
